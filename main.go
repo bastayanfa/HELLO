@@ -8,10 +8,35 @@ import (
 	"todo/todo"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
+	app := fiber.New()
+
+	app.Get("/auth", func(c *fiber.Ctx) error {
+		mySigningKey := []byte("password")
+		claims := &jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
+			Issuer:    "test",
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		ss, err := token.SignedString(mySigningKey)
+
+		if err != nil {
+			return c.Json(nil)
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"token": ss,
+		})
+	}
+
+	app.Listen(":9090")
+}
+
+/*func xmain() {
 	r := gin.New()
 
 	r.GET("/auth", func(c *gin.Context) {
@@ -41,8 +66,9 @@ func main() {
 	api.GET("/todos", todo.GetTaskfunc)
 
 	r.Run(":9090") // default 8080
-}
+}*/
 
+/*
 func AuthMiddleware(c *gin.Context) {
 
 	tokenString := c.GetHeader("Authorization")
@@ -66,47 +92,3 @@ func AuthMiddleware(c *gin.Context) {
 
 	c.Next()
 }
-
-/*func LoggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println(r.RequestURI)
-		next.ServeHTTP(w, r)
-	})
-}
-
-
-
-func xmain() {
-	r := mux.NewRouter()
-	r.Use(LoggingMiddleware)
-
-	r.HandleFunc("/auth", func(rw http.ResponseWriter, r *http.Request) {
-		mySigningKey := []byte("password")
-		claims := &jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
-			Issuer:    "test",
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		ss, err := token.SignedString(mySigningKey)
-
-		if err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		json.NewEncoder(rw).Encode(map[string]string{
-			"token": ss,
-		})
-	})
-
-	api := r.NewRoute().Subrouter()
-	api.Use(AuthMiddleware)
-	api.HandleFunc("/todos", todo.AddTask).Methods(http.MethodPut)
-	api.HandleFunc("/todos", todo.GetTask).Methods(http.MethodGet)
-	api.HandleFunc("/todos/{index}", todo.SetDone).Methods(http.MethodPut)
-
-	err := http.ListenAndServe(":9090", r)
-	fmt.Print(err)
-}
-*/
