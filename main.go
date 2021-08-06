@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -9,9 +10,18 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func main() {
+	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	db.AutoMigrate(&todo.Task{})
+
 	r := gin.New()
 
 	r.GET("/auth", func(c *gin.Context) {
@@ -34,9 +44,10 @@ func main() {
 		})
 	})
 	api := r.Group("/")
-	api.Use(AuthMiddleware)
+	// api.Use(AuthMiddleware)
+	app := todo.NewApp(db)
 
-	api.PUT("/todos", todo.AddTaskfunc)
+	api.PUT("/todos", app.AddTaskfunc)
 	api.PUT("/todos/:id", todo.SetDonefunc)
 	api.GET("/todos", todo.GetTaskfunc)
 
