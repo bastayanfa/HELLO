@@ -22,31 +22,30 @@ type NewTaskTodo struct {
 }
 
 type Serializer interface {
-	Decode(io.Reader, interface{}) error
-	Encode(io.Writer, interface{}) error
+	Decode(io.ReadCloser, interface{}) error
+	Encode(io.WriteCloser, interface{}) error
 }
 
 type JSONSerializer struct{}
 
-func (j JSONSerializer) Decode(r io.Reader, v interface{}) error {
-	return json.NewDecoder(r).Decode(v)
-}
-func (j JSONSerializer) Encode(w io.Writer, v interface{}) error {
-	return json.NewEncoder(w).Encode(v)
-}
-
 func NewJSONSerializer() JSONSerializer {
 	return JSONSerializer{}
+}
+
+func (JSONSerializer) Decode(body io.ReadCloser, v interface{}) error {
+	return json.NewDecoder(body).Decode(v)
+}
+
+func (JSONSerializer) Encode(body io.WriteCloser, v interface{}) error {
+	return json.NewEncoder(body).Encode(v)
 }
 
 type App struct {
 	serialize Serializer
 }
 
-func NewApp(serialize Serializer) *App {
-	return &App{
-		serialize: serialize,
-	}
+func NewApp(serializer Serializer) App {
+	return App{serialize: serializer}
 }
 
 func (app *App) AddTask(rw http.ResponseWriter, r *http.Request) {
@@ -54,17 +53,6 @@ func (app *App) AddTask(rw http.ResponseWriter, r *http.Request) {
 	var task NewTaskTodo
 	if err := app.serialize.Decode(r.Body, &task); err != nil {
 		// if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		rw.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	New(task.Task)
-}
-
-func AddTask(rw http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	var task NewTaskTodo
-	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
